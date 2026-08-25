@@ -13,5 +13,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check for local result
+        id: local
+        run: |
+          STATE=$(gh api repos/${{ github.repository }}/statuses/${{ github.sha }} \
+            --jq '[.[] | select(.context=="Sonarqube")][0].state // "none"')
+          echo "skip=$([ "$STATE" = "success" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Run Sonarqube analysis
+        if: steps.local.outputs.skip != 'true'
         run: echo "Running Sonarqube analysis..."
