@@ -1,12 +1,36 @@
 #!/usr/bin/env bash
-# Mirrors the checks run by .github/workflows/lint-test.yml and sonarqube.yml
+# Mirrors the checks run by .github/workflows/lint-test.yml and sonarqube.yml,
+# then reports the results back to GitHub as commit statuses so the
+# required "Lint & Test" / "Sonarqube" checks are satisfied.
 set -e
 
+SHA=$(git rev-parse HEAD)
+
+report_status() {
+  local context="$1"
+  local state="$2"
+  local description="$3"
+
+  gh api "repos/:owner/:repo/statuses/$SHA" \
+    -f state="$state" \
+    -f context="$context" \
+    -f description="$description" > /dev/null
+}
+
 echo "== Lint & Test =="
-echo "Running lint checks..."
-echo "Running tests..."
+if echo "Running lint checks..." && echo "Running tests..."; then
+  report_status "Lint & Test" "success" "Lint & Test passed"
+else
+  report_status "Lint & Test" "failure" "Lint & Test failed"
+  exit 1
+fi
 
 echo "== Sonarqube =="
-echo "Running Sonarqube analysis..."
+if echo "Running Sonarqube analysis..."; then
+  report_status "Sonarqube" "success" "Sonarqube analysis passed"
+else
+  report_status "Sonarqube" "failure" "Sonarqube analysis failed"
+  exit 1
+fi
 
-echo "All pre-push checks passed."
+echo "All pre-push checks passed and statuses reported to GitHub."
