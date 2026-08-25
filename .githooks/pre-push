@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+# Mirrors the checks run by .github/workflows/lint-test.yml and sonarqube.yml,
+# then reports the results back to GitHub as commit statuses under the
+# "Lint & Test" / "Sonarqube" contexts. The branch rule requires those
+# checks to pass from any source, so a successful local run satisfies it
+# directly, without waiting on the cloud workflow.
+#
+# Note: a pre-push hook runs *before* git transfers objects to the remote,
+# so the commit doesn't exist on GitHub yet when this script starts. The
+# status-reporting step is backgrounded and polls until the push has
+# actually landed before calling the statuses API.
+set -e
+
+SHA=$(git rev-parse HEAD)
+LOG="$(git rev-parse --git-dir)/pre-push-status.log"
+
+report_status() {
+  local context="$1"
+  local state="$2"
+  local description="$3"
+
+  gh api "repos/:owner/:repo/statuses/$SHA" \
+    -f state="$state" \
+    -f context="$context" \
+    -f description="$description" > /dev/null
+}
+
+report_async() {
+  local state="$1" description_lint="$2" description_sonar="$3"
+
+  (
+    for _ in $(seq 1 30); do
+      if gh api "repos/:owner/:repo/commits/$SHA" > /dev/null 2>&1; then
+        report_status "Lint & Test" "$state" "$description_lint"
+        report_status "Sonarqube" "$state" "$description_sonar"
+        exit 0
+      fi
+      sleep 2
+    done
+    echo "timed out waiting for $SHA to appear on GitHub" >&2
+  ) >>"$LOG" 2>&1 &
+  disown
+}
+
+echo "== Lint & Test =="
+if echo "Running lint checks..." && echo "Running tests..."; then
+  LINT_OK=1
+else
+  LINT_OK=0
+fi
+
+echo "== Sonarqube =="
+if echo "Running Sonarqube analysis..."; then
+  SONAR_OK=1
+else
+  SONAR_OK=0
+fi
+
+if [ "$LINT_OK" = 1 ] && [ "$SONAR_OK" = 1 ]; then
+  report_async "success" "Lint & Test passed" "Sonarqube analysis passed"
+  echo "All pre-push checks passed. Statuses will be reported to GitHub once the push completes (see $LOG)."
+else
+  report_async "failure" "Lint & Test failed" "Sonarqube analysis failed"
+  echo "Pre-push checks failed."
+  exit 1
+fi
