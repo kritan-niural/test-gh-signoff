@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Mirrors the checks run by .github/workflows/lint-test.yml and sonarqube.yml,
-# then reports the results back to GitHub as commit statuses so the
-# required "Lint & Test" / "Sonarqube" checks are satisfied.
+# then reports the results back to GitHub as commit statuses under the
+# "Lint & Test" / "Sonarqube" contexts. The branch rule requires those
+# checks to pass from any source, so a successful local run satisfies it
+# directly, without waiting on the cloud workflow.
 #
 # Note: a pre-push hook runs *before* git transfers objects to the remote,
 # so the commit doesn't exist on GitHub yet when this script starts. The
