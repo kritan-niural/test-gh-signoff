@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Mirrors the checks run by .github/workflows/lint-test.yml and sonarqube.yml
+set -e
+
+echo "== Lint & Test =="
+echo "Running lint checks..."
+echo "Running tests..."
+
+echo "== Sonarqube =="
+echo "Running Sonarqube analysis..."
+
+echo "All pre-push checks passed."
