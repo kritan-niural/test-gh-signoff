@@ -14,8 +14,9 @@ jobs:
       - name: Check for local result
         id: local
         run: |
-          STATE=$(gh api repos/${{ github.repository }}/statuses/${{ github.sha }} \
-            --jq '[.[] | select(.context=="Lint & Test")][0].state // "none"')
+          SHA="${{ github.event.pull_request.head.sha || github.sha }}"
+          STATE=$(gh api repos/${{ github.repository }}/statuses/$SHA \
+            --jq '[.[] | select(.context=="local/lint-test")][0].state // "none"')
           echo "skip=$([ "$STATE" = "success" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Mirrors the checks run by .github/workflows/lint-test.yml and sonarqube.yml,
-# then reports the results back to GitHub as commit statuses so the
-# required "Lint & Test" / "Sonarqube" checks are satisfied.
+# then reports the results back to GitHub as commit statuses under separate
+# "local/*" contexts (not the required "Lint & Test" / "Sonarqube" check
+# names) so the cloud workflows can see a local result was already produced
+# and skip re-running, without this hook masquerading as the required check.
 #
 # Note: a pre-push hook runs *before* git transfers objects to the remote,
 # so the commit doesn't exist on GitHub yet when this script starts. The
@@ -29,8 +31,8 @@ report_async() {
   (
     for _ in $(seq 1 30); do
       if gh api "repos/:owner/:repo/commits/$SHA" > /dev/null 2>&1; then
-        report_status "Lint & Test" "$state" "$description_lint"
-        report_status "Sonarqube" "$state" "$description_sonar"
+        report_status "local/lint-test" "$state" "$description_lint"
+        report_status "local/sonarqube" "$state" "$description_sonar"
         exit 0
       fi
       sleep 2
