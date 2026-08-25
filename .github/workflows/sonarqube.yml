@@ -18,7 +18,7 @@ jobs:
         run: |
           SHA="${{ github.event.pull_request.head.sha || github.sha }}"
           STATE=$(gh api repos/${{ github.repository }}/statuses/$SHA \
-            --jq '[.[] | select(.context=="local/sonarqube")][0].state // "none"')
+            --jq '[.[] | select(.context=="Sonarqube")][0].state // "none"')
           echo "skip=$([ "$STATE" = "success" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
